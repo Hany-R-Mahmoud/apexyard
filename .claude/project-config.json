@@ -17,5 +17,13 @@
         "run": "bash .claude/hooks/tests/test_subpack_extraction.sh 2>&1"
       }
     ]
+  },
+
+  "portfolio": {
+    "registry": "../apexyard-portfolio/apexyard.projects.yaml",
+    "projects_dir": "../apexyard-portfolio/projects",
+    "ideas_backlog": "../apexyard-portfolio/projects/ideas-backlog.md",
+    "onboarding": "../apexyard-portfolio/onboarding.yaml",
+    "workspace_dir": "../apexyard-portfolio/workspace"
   }
 }
