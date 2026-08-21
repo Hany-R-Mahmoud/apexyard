@@ -224,6 +224,8 @@ tracker_review_submit "$PR_HOST_REPO" {number} comment "$REVIEW_BODY_FILE"; subm
 
 When your verdict is APPROVED, and ONLY then, write the architecture-review approval marker so the `require-architecture-review.sh` gate lets the design PR merge through.
 
+The orchestrator (or the `/design-review` skill) sets the `.claude/session/active-reviewer` provenance marker before spawning you, which is what makes your marker write the *sanctioned* one. Since #1026 that is a matter of legitimacy, not mechanism: `warn-review-marker-write.sh` is **advisory** (AgDR-0111) — it warns and exits 0, so a build agent's identical write is **not** mechanically stopped. Yours is the real sign-off because a real, independent design review actually happened; theirs would be the author approving their own design. Write the marker on an APPROVED verdict, and do not treat the absence of a block as permission for anyone else to.
+
 ### Path: ops fork root, not git toplevel
 
 The marker MUST land at `<ops_fork_root>/.claude/session/reviews/<owner>__<repo>__{number}-architecture.approved` (repo-qualified path, AgDR-0060 / #485). Inside `workspace/<project>/`, `git rev-parse --show-toplevel` returns the project clone — NOT the ops fork; that's why `$MARKER_HOME` and `$PR_HOST_REPO` are resolved ONCE in "Posting the review" above (before any `cd` / `gh pr checkout`). **Reuse them here** — do not re-resolve (a second resolution risks keying the marker on a different repo than the one the review was posted to):

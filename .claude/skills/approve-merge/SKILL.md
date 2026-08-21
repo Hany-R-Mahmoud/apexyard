@@ -1,7 +1,7 @@
 ---
 name: approve-merge
 description: Record per-PR CEO approval and merge in one turn. ONLY on an explicit per-PR "approved" — never on umbrella "go".
-disable-model-invocation: false
+disable-model-invocation: true
 argument-hint: "<pr-number> [--no-merge]"
 effort: low
 ---
@@ -33,6 +33,25 @@ The valid invocation triggers look like this:
 The fact that this skill now runs the merge as part of its default flow does **not** weaken this rule — it sharpens it. The invocation moment IS the merge moment; you don't get a free second-message safety net to rethink. Invoke only when you're certain.
 
 ## Process
+
+### 0. Resolve the configured approver display title (SOFT, prose-only)
+
+Before addressing the user in any confirmation question or report, read the configured display title for the human per-PR merge approver:
+
+```bash
+source "$(git rev-parse --show-toplevel)/.claude/hooks/_lib-read-config.sh"
+APPROVER_TITLE=$(config_get_or '.review_markers.human_approver_title' 'CEO')
+```
+
+Use `$APPROVER_TITLE` (default `"CEO"`) whenever you address the human approver in prose — e.g. "PR #X is ready to merge. Just confirming — explicit approval to merge PR #X, now, ${APPROVER_TITLE}?" or a status line naming the approver.
+
+**This is DISPLAY ONLY and SOFT (prose-level), not mechanically enforced.** It changes nothing about:
+
+- the marker filename (`<owner>__<repo>__<pr>-ceo.approved` — always `-ceo`, never renamed)
+- the structured marker fields (`sha=`, `approved_by=user`, `skill_version=`) written in step 5 — write them exactly as documented below, regardless of the configured title
+- `block-unreviewed-merge.sh`'s gate logic — it reads the same marker and fields whether the configured title is "CEO", "Maintainer", or anything else
+
+If `_lib-read-config.sh` or `jq` is unavailable, `config_get_or` degrades to the literal fallback `'CEO'` — never let a config-read failure block the rest of this skill.
 
 ### 1. Parse the PR number, the repo, and flags
 
@@ -319,19 +338,21 @@ See AgDR-0012 for the full trade-off.
 ```
 You: "I'll execute the plan. Step 1: approve-merge, Step 2: gh pr merge."
 CEO: "go"
-You: *invokes /approve-merge*  ← FAILURE
+You: *tries to invoke /approve-merge*  ← FAILURE, twice over:
+                                          the "go" was plan-level, AND since
+                                          #1042 the model cannot invoke this
+                                          skill at all.
 ```
 
 The CEO's "go" was on the plan. It was not a per-PR approval for the merge. The correct flow:
 
 ```
 You: *executes the non-merge steps*
-You: "All other steps done. PR #X ready to merge — approved?"
-CEO: "approved"
-You: *invokes /approve-merge X*  ← writes marker AND merges in one turn
+You: "All other steps done. PR #X is ready to merge — run /approve-merge X when you're happy."
+CEO: /approve-merge X          ← writes the structured marker AND merges in one turn
 ```
 
-The discrete approval moment is **the invocation of /approve-merge**, not a separate "now do the merge" message. Treat the invocation with the seriousness the merge warrants.
+The discrete approval moment is **the invocation of /approve-merge**, not a separate "now do the merge" message. Since #1042 that invocation is mechanically restricted to a human (`disable-model-invocation: true`), so the model's job ends at getting the PR ready and saying so. Treat the invocation with the seriousness the merge warrants: once it runs, the merge runs.
 
 ---
 
