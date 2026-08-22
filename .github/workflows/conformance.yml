@@ -34,14 +34,9 @@
 name: Conformance CI
 
 on:
-  schedule:
-    # Daily, not per-PR: pi and Codex bill a real per-turn API cost and
-    # per-PR frequency would multiply that cost with the number of PRs
-    # touching unrelated files. Daily is frequent enough to catch drift
-    # (a harness upgrade silently breaking the adapter, a hook wording
-    # change breaking the assertion anchor) inside the 3-day
-    # green-continuous window without meaningfully increasing spend.
-    - cron: "17 6 * * *"
+  # Fork override: run conformance only when explicitly requested. This avoids
+  # recurring API usage and failure notifications while preserving the full
+  # matrix and single-harness manual paths. See Hany-R-Mahmoud/apexyard#5.
   workflow_dispatch:
     inputs:
       harness:
